@@ -2,7 +2,7 @@ const fs = require('fs');
 const templateFiles = fs.readdirSync('./template').filter(file => file.endsWith('.js'));
 const { exec } = require('child_process');
 
-const generateTemplate = (name) => {
+const generateTemplate = (name, options) => {
     for (const file of templateFiles) {
         const template = require(`./template/${file}`);
 
@@ -33,10 +33,27 @@ const generateTemplate = (name) => {
 
             console.log(clc.yellow('[YURD] Creating Files...'))
 
+            if(options.typescript) {
+                exec(template.typescriptDependiencesCommand, (err, stdout, stderr) => {
+                    if (err) {
+                        console.log(clc.red('[YURD] Unexpected Error!'))
+                        return;
+                    }
+                });
+            }
+
+            if(template.directories && !template.directories.length === 0) {
+                for (const directory of template.directories) {
+                    if (!fs.existsSync(directory)) {
+                        fs.mkdirSync(directory);
+                    }
+                }
+            }
+
             template.code.forEach(file => {
-                if (template.supportTypescript && template.supportTypescript === true) {
+                if (template.supportTypescript && template.supportTypescript === true && options.typescript) {
                     if(file.fileName.endsWith('.js')) {
-                        fs.appendFile(file.fileName.split('.js').join('.ts'), file.fileCode, function (err, data) {
+                        fs.appendFile(file.fileName.split('.js').join('.ts'), file.typescriptCode, function (err, data) {
                             if (err) {
                                 console.log(clc.red('[YURD] Unexpected Error!'))
                             }
